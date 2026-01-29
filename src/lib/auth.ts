@@ -22,8 +22,8 @@ export const auth = betterAuth({
     additionalFields: {
       role: {
         type: "string",
-        default: "USER",
-        require: false
+        default: "CUSTOMER",
+        require: true
       },
       phone: {
         type: "string",
@@ -32,7 +32,7 @@ export const auth = betterAuth({
       status: {
         type: "string",
         default: "ACTIVE",
-        required: false
+        required: true
       }
     },
   },
