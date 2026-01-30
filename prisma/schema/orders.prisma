@@ -1,0 +1,64 @@
+// schema/orders.schema.prisma
+
+enum OrderStatus {
+  PLACED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CASH_ON_DELIVERY
+  CARD
+  UPI
+  NET_BANKING
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+model Order {
+  id              String      @id @default(uuid())
+  orderNumber     String      @unique
+  customerId      String      // References User.id
+  sellerId        String      // References User.id (for seller filtering)
+  totalAmount     Float
+  discount        Float       @default(0)
+  shippingFee     Float       @default(0)
+  finalAmount     Float
+  status          OrderStatus @default(PLACED)
+  shippingAddress String
+  customerPhone   String?
+  customerNotes   String?
+  paymentMethod   PaymentMethod @default(CASH_ON_DELIVERY)
+  paymentStatus   PaymentStatus @default(PENDING)
+  
+  // Relationships
+  customer        User        @relation("CustomerOrders", fields: [customerId], references: [id])
+  seller          User        @relation("OrderSeller", fields: [sellerId], references: [id])
+  items           OrderItem[]
+  reviews         Review[]    // ADDED THIS RELATIONSHIP
+  
+  // Timestamps
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  placedAt       DateTime    @default(now())
+  processedAt    DateTime?
+  shippedAt      DateTime?
+  deliveredAt    DateTime?
+  cancelledAt    DateTime?
+  
+  @@index([customerId])
+  @@index([sellerId])
+  @@index([status])
+  @@index([orderNumber])
+  @@index([createdAt])
+  @@map("orders")
+}
