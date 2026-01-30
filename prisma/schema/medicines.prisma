@@ -1,36 +1,27 @@
 model Medicine {
-  id              String    @id @default(uuid())
-  name            String
-  description     String
-  price           Float
-  stock           Int       @default(0)
-  imageUrl        String?
-  manufacturer    String
-  expiryDate      DateTime?
-  isPrescription  Boolean   @default(false)
-  isActive        Boolean   @default(true)
-  dosageForm      String?   // e.g., Tablet, Syrup, Capsule
-  packaging       String?   // e.g., Strip of 10, Bottle of 100ml
-  
-  // Foreign keys
-  categoryId      String
-  sellerId        String    // References User.id
-  
-  // Relationships
-  category        Category  @relation(fields: [categoryId], references: [id])
-  seller          User      @relation("MedicineSeller", fields: [sellerId], references: [id])
-  orderItems      OrderItem[]
-  reviews         Review[]
-  
-  // Timestamps
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  
+  id           String   @id @default(uuid())
+  name         String
+  description  String
+  price        Float
+  stock        Int      @default(0)
+  manufacturer String
+  expiryDate   DateTime?
+  isActive     Boolean  @default(true)
+
+  categoryId   String
+  sellerId     String
+
+  category     Category @relation(fields: [categoryId], references: [id])
+  seller       User     @relation("MedicineSeller", fields: [sellerId], references: [id])
+
+  orderItems   OrderItem[]
+  reviews      Review[]
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
   @@index([name])
   @@index([categoryId])
   @@index([sellerId])
-  @@index([isActive])
-  @@index([price])
-  @@index([manufacturer])
   @@map("medicines")
 }

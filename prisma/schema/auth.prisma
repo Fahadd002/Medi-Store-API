@@ -28,11 +28,10 @@ model User {
   sessions      Session[]
   accounts      Account[]
   
-  // MediStore relationships
-  sellerMedicines Medicine[]  @relation("MedicineSeller")
-  customerOrders  Order[]     @relation("CustomerOrders")
-  sellerOrders    Order[]     @relation("OrderSeller")
-  orderItems      OrderItem[] @relation("OrderItemSeller")
+    // Relations
+  medicines       Medicine[] @relation("MedicineSeller")
+  customerOrders  Order[]    @relation("CustomerOrders")
+  sellerOrders    Order[]    @relation("SellerOrders")
   reviews         Review[]
   
   // Timestamps

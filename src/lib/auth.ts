@@ -23,16 +23,23 @@ export const auth = betterAuth({
       role: {
         type: "string",
         default: "CUSTOMER",
-        require: true  // This is okay because it has a default
+        required: true,
+        input: true,
+        validate: (value: string) => {
+          if (value && !["CUSTOMER", "SELLER"].includes(value)) {
+            throw new Error("Role must be either CUSTOMER or SELLER");
+          }
+          return value;
+        }
       },
       phone: {
         type: "string",
-        required: false  // Optional
+        required: false
       },
       status: {
         type: "string",
         default: "ACTIVE",
-        required: false  // CHANGED FROM true TO false
+        required: false
       }
     },
   },
@@ -160,5 +167,5 @@ export const auth = betterAuth({
       clientId: process.env.GOOGLE_CLIENT_ID as string,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
     },
-  },
+  }
 });

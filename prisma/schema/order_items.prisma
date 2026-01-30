@@ -1,24 +1,17 @@
 model OrderItem {
-  id              String    @id @default(uuid())
-  orderId         String
-  medicineId      String
-  sellerId        String    // References User.id
-  quantity        Int
-  price           Float     // Price at time of purchase
-  subtotal        Float     // quantity * price
-  
-  // Relationships
-  order           Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  medicine        Medicine  @relation(fields: [medicineId], references: [id])
-  seller          User      @relation("OrderItemSeller", fields: [sellerId], references: [id])
-  
-  // Timestamps
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  
+  id          String   @id @default(uuid())
+  orderId     String
+  medicineId  String
+  quantity    Int
+  price       Float   // price at purchase time
+
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  medicine    Medicine @relation(fields: [medicineId], references: [id])
+
+  createdAt   DateTime @default(now())
+
   @@unique([orderId, medicineId])
   @@index([orderId])
   @@index([medicineId])
-  @@index([sellerId])
   @@map("order_items")
 }
