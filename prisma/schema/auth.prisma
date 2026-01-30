@@ -12,7 +12,6 @@ enum UserStatus {
 }
 
 model User {
-  // BetterAuth core fields
   id            String    @id
   name          String
   email         String    @unique

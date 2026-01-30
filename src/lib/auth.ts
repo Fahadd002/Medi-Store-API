@@ -1,12 +1,12 @@
-import { betterAuth, string } from "better-auth";
+import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "./prisma";
-import nodemailer from "nodemailer"
+import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 587,
-  secure: false, // Use true for port 465, false for port 587
+  secure: false,
   auth: {
     user: process.env.APP_USER,
     pass: process.env.APP_PASS,
@@ -15,7 +15,7 @@ const transporter = nodemailer.createTransport({
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
-    provider: "postgresql", // or "mysql", "postgresql", ...etc
+    provider: "postgresql",
   }),
   trustedOrigins: [process.env.APP_URL as string],
   user: {
@@ -23,16 +23,16 @@ export const auth = betterAuth({
       role: {
         type: "string",
         default: "CUSTOMER",
-        require: true
+        require: true  // This is okay because it has a default
       },
       phone: {
         type: "string",
-        required: false
+        required: false  // Optional
       },
       status: {
         type: "string",
         default: "ACTIVE",
-        required: true
+        required: false  // CHANGED FROM true TO false
       }
     },
   },
@@ -43,10 +43,10 @@ export const auth = betterAuth({
   },
   emailVerification: {
     sendOnSignUp: true,
-    autoSignInAfterVerification:true,
-    sendVerificationEmail: async ({ user, url, token }, request) => {
+    autoSignInAfterVerification: true,
+    sendVerificationEmail: async ({ user, url, token }) => {
       try {
-        const verificationURL = `${process.env.APP_URL}/verify-token?token=${token}`;
+        const verificationURL = `${process.env.APP_URL}/verify-email?token=${token}`;
 
         const htmlTemplate = `
         <!DOCTYPE html>
@@ -54,7 +54,7 @@ export const auth = betterAuth({
         <head>
           <meta charset="UTF-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-          <title>Verify Your Email</title>
+          <title>Verify Your Email - MediStore</title>
           <style>
             body {
               margin: 0;
@@ -71,7 +71,7 @@ export const auth = betterAuth({
               overflow: hidden;
             }
             .header {
-              background: linear-gradient(135deg, #2563eb, #1e40af);
+              background: linear-gradient(135deg, #10b981, #059669);
               padding: 24px;
               color: #ffffff;
               text-align: center;
@@ -93,7 +93,7 @@ export const auth = betterAuth({
               display: inline-block;
               margin: 24px 0;
               padding: 14px 28px;
-              background-color: #2563eb;
+              background-color: #10b981;
               color: #ffffff !important;
               text-decoration: none;
               font-weight: 600;
@@ -108,19 +108,19 @@ export const auth = betterAuth({
             }
             .link {
               word-break: break-all;
-              color: #2563eb;
+              color: #10b981;
             }
           </style>
         </head>
         <body>
           <div class="container">
             <div class="header">
-              <h1>Verify Your Email</h1>
+              <h1>Verify Your Email - MediStore</h1>
             </div>
             <div class="content">
               <p>Hi <strong>${user.name ?? "there"}</strong>,</p>
               <p>
-                Thanks for signing up for <strong>Prisma Blog</strong>.
+                Thanks for signing up for <strong>MediStore</strong> - Your Trusted Online Medicine Shop.
                 Please confirm your email address by clicking the button below:
               </p>
               <p style="text-align:center;">
@@ -128,14 +128,14 @@ export const auth = betterAuth({
                   Verify Email Address
                 </a>
               </p>
-              <p>If the button doesn’t work, copy and paste this link:</p>
+              <p>If the button doesn't work, copy and paste this link:</p>
               <p class="link">${verificationURL}</p>
               <p>
-                If you didn’t create this account, you can safely ignore this email.
+                If you didn't create this account, you can safely ignore this email.
               </p>
             </div>
             <div class="footer">
-              © ${new Date().getFullYear()} Prisma Blog
+              © ${new Date().getFullYear()} MediStore - Your Trusted Online Medicine Shop
             </div>
           </div>
         </body>
@@ -143,25 +143,22 @@ export const auth = betterAuth({
       `;
 
         await transporter.sendMail({
-          from: '"Prisma Blog" <fpramanik6@gmail.com>',
+          from: `"MediStore" <${process.env.APP_USER}>`,
           to: user.email,
-          subject: "Verify your email address",
+          subject: "Verify your email address - MediStore",
           html: htmlTemplate,
         });
 
       } catch (error) {
         console.error("Email verification failed:", error);
-
-        // Do NOT crash Node
         return;
       }
-
     },
   },
- socialProviders: {
-        google: { 
-            clientId: process.env.GOOGLE_CLIENT_ID as string, 
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET as string, 
-        }, 
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID as string,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
     },
+  },
 });
