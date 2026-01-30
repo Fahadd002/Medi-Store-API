@@ -1,20 +1,22 @@
 model Review {
   id          String   @id @default(uuid())
-  rating      Int
+
+  rating      Int?
   comment     String?
 
-  customerId  String
+  customerId  String?
+  sellerId    String?
   medicineId  String
-  orderId     String
 
-  customer    User     @relation(fields: [customerId], references: [id])
+  parentId    String?
+  parent      Review?  @relation("ReviewReplies", fields: [parentId], references: [id])
+  replies     Review[] @relation("ReviewReplies")
+
+  customer    User?    @relation("CustomerReviews", fields: [customerId], references: [id])
+  seller      User?    @relation("SellerReplies", fields: [sellerId], references: [id])
   medicine    Medicine @relation(fields: [medicineId], references: [id])
-  order       Order    @relation(fields: [orderId], references: [id])
 
   createdAt   DateTime @default(now())
 
-  @@unique([customerId, medicineId, orderId])
   @@index([medicineId])
-  @@index([rating])
-  @@map("reviews")
 }

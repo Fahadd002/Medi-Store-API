@@ -32,7 +32,8 @@ model User {
   medicines       Medicine[] @relation("MedicineSeller")
   customerOrders  Order[]    @relation("CustomerOrders")
   sellerOrders    Order[]    @relation("SellerOrders")
-  reviews         Review[]
+  customerReviews Review[] @relation("CustomerReviews")
+  sellerReplies   Review[] @relation("SellerReplies")
   
   // Timestamps
   createdAt     DateTime  @default(now())

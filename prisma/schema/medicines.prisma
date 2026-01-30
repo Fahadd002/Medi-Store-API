@@ -2,7 +2,8 @@ model Medicine {
   id           String   @id @default(uuid())
   name         String
   description  String
-  price        Float
+  basePrice       Float  
+  discountPercent Float?  
   stock        Int      @default(0)
   manufacturer String
   expiryDate   DateTime?
