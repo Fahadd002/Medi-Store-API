@@ -1,6 +1,4 @@
 import { Prisma, Category } from "../../../generated/prisma/client";
-
-
 /**
  * Create Category (Admin only)
  */
@@ -73,7 +71,6 @@ const getAllCategories = async ({
   };
 };
 
-
 const getCategoryById = async (id: string) => {
   return await prisma.category.findUniqueOrThrow({
     where: { id },
@@ -85,7 +82,6 @@ const getCategoryById = async (id: string) => {
         select: {
           id: true,
           name: true,
-          price: true,
           stock: true
         }
       }

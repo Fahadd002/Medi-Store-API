@@ -14,10 +14,13 @@ const transporter = nodemailer.createTransport({
 });
 
 export const auth = betterAuth({
+  secret: process.env.BETTER_AUTH_SECRET,
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
   trustedOrigins: [process.env.APP_URL as string],
+  baseURL: process.env.APP_URL, // This is important!
+  
   user: {
     additionalFields: {
       role: {
@@ -43,15 +46,17 @@ export const auth = betterAuth({
       }
     },
   },
+  
   emailAndPassword: {
     enabled: true,
     autoSignIn: false,
     requireEmailVerification: true
   },
+  
   emailVerification: {
     sendOnSignUp: true,
     autoSignInAfterVerification: true,
-    sendVerificationEmail: async ({ user, url, token }) => {
+    sendVerificationEmail: async ({ user, token }) => {
       try {
         const verificationURL = `${process.env.APP_URL}/verify-email?token=${token}`;
 
@@ -86,7 +91,7 @@ export const auth = betterAuth({
             .header h1 {
               margin: 0;
               font-size: 22px;
-              font-weight: 600;
+                              font-weight: 600;
             }
             .content {
               padding: 28px;
@@ -125,7 +130,7 @@ export const auth = betterAuth({
               <h1>Verify Your Email - MediStore</h1>
             </div>
             <div class="content">
-              <p>Hi <strong>${user.name ?? "there"}</strong>,</p>
+              <p>Hi <strong>${user.name || "there"}</strong>,</p>
               <p>
                 Thanks for signing up for <strong>MediStore</strong> - Your Trusted Online Medicine Shop.
                 Please confirm your email address by clicking the button below:
@@ -156,12 +161,15 @@ export const auth = betterAuth({
           html: htmlTemplate,
         });
 
+        console.log(`✅ Verification email sent to ${user.email}`);
+        
       } catch (error) {
-        console.error("Email verification failed:", error);
-        return;
+        console.error("❌ Email verification failed:", error);
+        throw error;
       }
     },
   },
+  
   socialProviders: {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID as string,
