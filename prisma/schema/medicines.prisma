@@ -7,7 +7,7 @@ model Medicine {
   stock        Int      @default(0)
   manufacturer String
   expiryDate   DateTime?
-  isActive     Boolean  @default(true)
+  isActive     Boolean  @default(false)
 
   categoryId   String
   sellerId     String

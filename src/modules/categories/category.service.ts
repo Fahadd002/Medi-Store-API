@@ -13,6 +13,7 @@ const createCategory = async (
 };
 import { CategoryWhereInput } from "../../../generated/prisma/models";
 import { prisma } from "../../lib/prisma";
+import { DropDown } from "../../types/dropdown.type";
 
 const getAllCategories = async ({
   search,
@@ -142,11 +143,23 @@ const getCategoryStats = async () => {
   });
 };
 
+const dropDownCategories = async (): Promise<DropDown[]> => {
+  const categories = await prisma.category.findMany({
+    select: { id: true, name: true },
+  });
+
+  return categories.map((category) => ({
+    value: category.id,
+    label: category.name,
+  }));
+};
+
 export const categoryService = {
   createCategory,
   getAllCategories,
   getCategoryById,
   updateCategory,
   deleteCategory,
-  getCategoryStats
+  getCategoryStats,
+  dropDownCategories
 };

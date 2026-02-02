@@ -20,32 +20,6 @@ const createCategory = async (req: Request, res: Response, next: NextFunction) =
   }
 };
 
-/**
- * Get all categories
- */
-// const getAllCategories = async (req: Request, res: Response, next: NextFunction) => {
-//   try {
-//     const { search } = req.query;
-//     const searchString = typeof search === "string" ? search : undefined;
-
-//     const { page, limit, skip, sortBy, sortOrder } =
-//       pageinationSortingHelper(req.query);
-
-//     const result = await categoryService.getAllCategories({
-//       search: searchString,
-//       page,
-//       limit,
-//       skip,
-//       sortBy,
-//       sortOrder
-//     });
-
-//     res.status(200).json(result);
-//   } catch (e) {
-//     next(e);
-//   }
-// };
-
 const getAllCategories = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { search } = req.query
@@ -136,11 +110,30 @@ const getCategoryStats = async (req: Request, res: Response, next: NextFunction)
   }
 };
 
+export const getDropDownCategories = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+
+    const categories = await categoryService.dropDownCategories();
+
+    res.status(200).json({
+      success: true,
+      data: categories,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const CategoryController = {
   createCategory,
   getAllCategories,
   getCategoryById,
   updateCategory,
   deleteCategory,
-  getCategoryStats
+  getCategoryStats,
+  getDropDownCategories
 };
