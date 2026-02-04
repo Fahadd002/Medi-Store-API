@@ -85,17 +85,75 @@ const getAllMedicines = async ({
   };
 };
 
-const getMyAddedMedicines = async (sellerId: string) => {
-  return await prisma.medicine.findMany({
-    where: { sellerId },
-    orderBy: { createdAt: "desc" },
-    include: {
-      _count: {
-        select: { reviews: true },
+const getMyAddedMedicines = async ({
+  search,
+  categoryId,
+  sellerId,
+  page,
+  limit,
+  skip,
+  sortBy,
+  sortOrder,
+}: {
+  search: string | undefined;
+  sellerId: string;
+  categoryId: string | undefined;
+  page: number;
+  limit: number;
+  skip: number;
+  sortBy: string;
+  sortOrder: string;
+}) => {
+  const andConditions: Prisma.MedicineWhereInput[] = [];
+  andConditions.push({ sellerId});
+
+  if (search) {
+    andConditions.push({
+      OR: [
+        { name: { contains: search, mode: "insensitive" } },
+        { description: { contains: search, mode: "insensitive" } },
+      ],
+    });
+  }
+
+  if (categoryId) {
+    andConditions.push({ categoryId });
+  }
+
+  const [data, total] = await Promise.all([
+    prisma.medicine.findMany({
+      take: limit,
+      skip,
+      where: { AND: andConditions },
+      orderBy: {
+        [sortBy]: sortOrder === "asc" ? "asc" : "desc",
       },
+      include: {
+        category: true,
+        seller: {
+          select: { id: true, name: true },
+        },
+        _count: {
+          select: { reviews: true },
+        },
+      },
+    }),
+    prisma.medicine.count({
+      where: { AND: andConditions },
+    }),
+  ]);
+
+  return {
+    data,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPage: Math.ceil(total / limit),
     },
-  });
+  };
 };
+
 
 const getMedicineById = async (medicineId: string) => {
   return await prisma.medicine.findUniqueOrThrow({

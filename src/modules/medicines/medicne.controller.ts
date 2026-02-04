@@ -104,7 +104,24 @@ const getMyAddedMedicines = async (req: Request, res: Response, next: NextFuncti
       throw new Error("Unauthorized!");
     }
 
-    const result = await medicineService.getMyAddedMedicines(user.id);
+    const { search, categoryId} = req.query;
+
+    const searchString = typeof search === "string" ? search : undefined;
+    const category = typeof categoryId === "string" ? categoryId : undefined;
+
+    const { page, limit, skip, sortBy, sortOrder } = pageinationSortingHelper(req.query);
+
+    const result = await medicineService.getMyAddedMedicines({
+      search: searchString,
+      categoryId: category,
+      sellerId: user.id,
+      page,
+      limit,
+      skip,
+      sortBy,
+      sortOrder,
+    });
+    
     res.status(200).json(result);
   } catch (e) {
     next(e);

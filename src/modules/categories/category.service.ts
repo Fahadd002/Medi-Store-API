@@ -146,6 +146,7 @@ const getCategoryStats = async () => {
 const dropDownCategories = async (): Promise<DropDown[]> => {
   const categories = await prisma.category.findMany({
     select: { id: true, name: true },
+    orderBy: { name: "asc" }
   });
 
   return categories.map((category) => ({
