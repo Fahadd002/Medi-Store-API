@@ -8,7 +8,7 @@ model Medicine {
   manufacturer String
   expiryDate   DateTime?
   isActive     Boolean  @default(false)
-
+  photoUrl        String?  
   categoryId   String
   sellerId     String
 
