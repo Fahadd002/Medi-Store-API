@@ -12,7 +12,12 @@ const addMedicine = async (req: Request, res: Response, next: NextFunction) => {
       });
     }
 
-    const result = await medicineService.addMedicine(req.body, user.id as string);
+    const medicineData = {
+      ...req.body,
+      expiryDate: req.body.expiryDate ? new Date(req.body.expiryDate) : null,
+    };
+
+    const result = await medicineService.addMedicine(medicineData, user.id as string);
     res.status(201).json(result);
   } catch (e) {
     next(e);
@@ -46,6 +51,36 @@ const getAllMedicines = async (req: Request, res: Response, next: NextFunction) 
   }
 };
 
+/* ================= UPDATE MEDICINE ================= */
+const updateMedicine = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = req.user;
+    if (!user) {
+      throw new Error("You are not authorized");
+    }
+
+    const isAdmin = user.role === UserRole.ADMIN;
+    const { medicineId } = req.params;
+
+    // Convert expiryDate string to Date object if provided
+    const updateData = { ...req.body };
+    if (updateData.expiryDate) {
+      updateData.expiryDate = new Date(updateData.expiryDate);
+    }
+
+    const result = await medicineService.updateMedicine(
+      medicineId as string,
+      updateData,
+      user.id,
+      isAdmin
+    );
+
+    res.status(200).json(result);
+  } catch (e) {
+    next(e);
+  }
+};
+
 /* ================= GET MEDICINE BY ID ================= */
 const getMedicineById = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -70,30 +105,6 @@ const getMyAddedMedicines = async (req: Request, res: Response, next: NextFuncti
     }
 
     const result = await medicineService.getMyAddedMedicines(user.id);
-    res.status(200).json(result);
-  } catch (e) {
-    next(e);
-  }
-};
-
-/* ================= UPDATE MEDICINE ================= */
-const updateMedicine = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const user = req.user;
-    if (!user) {
-      throw new Error("You are not authorized");
-    }
-
-    const isAdmin = user.role === UserRole.ADMIN;
-    const { medicineId } = req.params;
-
-    const result = await medicineService.updateMedicine(
-      medicineId as string,
-      req.body,
-      user.id,
-      isAdmin
-    );
-
     res.status(200).json(result);
   } catch (e) {
     next(e);

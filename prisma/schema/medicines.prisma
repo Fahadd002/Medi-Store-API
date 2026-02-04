@@ -9,6 +9,7 @@ model Medicine {
   expiryDate   DateTime?
   isActive     Boolean  @default(false)
   photoUrl        String?  
+  unit            String? 
   categoryId   String
   sellerId     String
 
