@@ -161,10 +161,10 @@ export const auth = betterAuth({
           html: htmlTemplate,
         });
 
-        console.log(`✅ Verification email sent to ${user.email}`);
+        console.log(`Verification email sent to ${user.email}`);
         
       } catch (error) {
-        console.error("❌ Email verification failed:", error);
+        console.error("Email verification failed:", error);
         throw error;
       }
     },
