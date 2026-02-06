@@ -13,26 +13,79 @@ const createOrder = async (
     }[];
   }
 ) => {
-  const totalAmount = payload.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  console.log("Creating order with payload:", payload);
+  console.log("Customer ID:", customerId);
+  console.log("Seller ID from payload:", payload.sellerId);
+  
+  const totalAmount = payload.items.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
+  
+  const orderNumber = `ORD-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
-  const order = await prisma.order.create({
-    data: {
-      orderNumber: `ORD-${Date.now()}`,
-      customerId,
-      sellerId: payload.sellerId,
-      shippingAddress: payload.shippingAddress,
-      paymentMethod: PaymentMethod.CASH_ON_DELIVERY,
-      totalAmount,
-      items: {
-        create: payload.items,
+  const result = await prisma.$transaction(async (tx) => {
+    // 1. Create the order with generated UUID
+    const order = await tx.order.create({
+      data: {
+        orderNumber,
+        customerId,
+        sellerId: payload.sellerId,
+        shippingAddress: payload.shippingAddress,
+        paymentMethod: PaymentMethod.CASH_ON_DELIVERY,
+        totalAmount,
+        status: OrderStatus.PLACED,
       },
-    },
-    include: {
-      items: true,
-    },
+    });
+
+    const orderItems = [];
+    
+    for (const item of payload.items) {
+      const medicine = await tx.medicine.findFirst({
+        where: {
+          id: item.medicineId,
+          sellerId: payload.sellerId,
+          isActive: true,
+        },
+      });
+      
+      if (!medicine) {
+        throw new Error(`Medicine ${item.medicineId} not found or not available from this seller`);
+      }
+
+      // Check if there's enough stock
+      if (medicine.stock !== null && medicine.stock < item.quantity) {
+        throw new Error(`Insufficient stock for ${medicine.name}. Available: ${medicine.stock}, Requested: ${item.quantity}`);
+      }
+
+      const orderItem = await tx.orderItem.create({
+        data: {
+          orderId: order.id,
+          medicineId: item.medicineId,
+          quantity: item.quantity,
+          price: item.price,
+        },
+      });
+
+      if (medicine.stock !== null) {
+        await tx.medicine.update({
+          where: { id: item.medicineId },
+          data: {
+            stock: medicine.stock - item.quantity,
+          },
+        });        
+      }
+
+      orderItems.push(orderItem);
+    }
+
+    return {
+      ...order,
+      items: orderItems,
+    };
   });
 
-  return order;
+  return result;
 };
 
 const getMyOrders = async (customerId: string) => {
@@ -42,44 +95,96 @@ const getMyOrders = async (customerId: string) => {
       items: {
         include: { medicine: true },
       },
+      seller: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
     },
     orderBy: { createdAt: "desc" },
   });
 };
 
-const getOrderById = async (orderId: string, customerId: string) => {
+const getOrderById = async (orderId: string, userId: string) => {
+  // Check if user is either customer or seller of this order
   return prisma.order.findFirst({
     where: {
       id: orderId,
-      customerId,
+      OR: [
+        { customerId: userId },
+        { sellerId: userId },
+      ],
     },
     include: {
       items: {
         include: { medicine: true },
       },
+      customer: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+      seller: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
     },
   });
 };
 
-const cancelOrder = async (orderId: string, customerId: string) => {
+const cancelOrder = async (orderId: string, userId: string) => {
   const order = await prisma.order.findFirst({
-    where: { id: orderId, customerId },
+    where: {
+      id: orderId,
+      OR: [
+        { customerId: userId },
+        { sellerId: userId },
+      ],
+    },
   });
 
   if (!order) {
-    throw new Error("Order not found");
+    throw new Error("Order not found or unauthorized");
   }
 
   if (
     order.status === OrderStatus.SHIPPED ||
     order.status === OrderStatus.DELIVERED
   ) {
-    throw new Error("Order cannot be cancelled");
+    throw new Error("Order cannot be cancelled as it's already shipped or delivered");
   }
 
-  return prisma.order.update({
-    where: { id: orderId },
-    data: { status: OrderStatus.CANCELLED },
+  return await prisma.$transaction(async (tx) => {
+    const orderItems = await tx.orderItem.findMany({
+      where: { orderId },
+      include: { medicine: true },
+    });
+
+    for (const item of orderItems) {
+      if (item.medicine.stock !== null) {
+        await tx.medicine.update({
+          where: { id: item.medicineId },
+          data: {
+            stock: item.medicine.stock + item.quantity,
+          },
+        });
+      }
+    }
+
+    // 3. Update order status to CANCELLED
+    const updatedOrder = await tx.order.update({
+      where: { id: orderId },
+      data: { status: OrderStatus.CANCELLED },
+    });
+
+    return updatedOrder;
   });
 };
 
@@ -87,7 +192,14 @@ const getSellerOrders = async (sellerId: string) => {
   return prisma.order.findMany({
     where: { sellerId },
     include: {
-      customer: true,
+      customer: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+        },
+      },
       items: {
         include: { medicine: true },
       },
@@ -102,11 +214,30 @@ const updateOrderStatus = async (
   status: OrderStatus
 ) => {
   const order = await prisma.order.findFirst({
-    where: { id: orderId, sellerId },
+    where: { 
+      id: orderId, 
+      sellerId,
+      status: {
+        not: OrderStatus.CANCELLED, // Cannot update cancelled orders
+      }
+    },
   });
 
   if (!order) {
     throw new Error("Order not found or unauthorized");
+  }
+
+  // Validate status transition
+  const validTransitions: Record<OrderStatus, OrderStatus[]> = {
+    [OrderStatus.PLACED]: [OrderStatus.PROCESSING, OrderStatus.CANCELLED],
+    [OrderStatus.PROCESSING]: [OrderStatus.SHIPPED, OrderStatus.CANCELLED],
+    [OrderStatus.SHIPPED]: [OrderStatus.DELIVERED],
+    [OrderStatus.DELIVERED]: [],
+    [OrderStatus.CANCELLED]: [],
+  };
+
+  if (!validTransitions[order.status].includes(status)) {
+    throw new Error(`Invalid status transition from ${order.status} to ${status}`);
   }
 
   return prisma.order.update({
@@ -115,13 +246,11 @@ const updateOrderStatus = async (
   });
 };
 
-
 export const orderService = {
   createOrder,
   getMyOrders,
   getOrderById,
   cancelOrder,
-   // seller
   getSellerOrders,
-  updateOrderStatus
+  updateOrderStatus,
 };

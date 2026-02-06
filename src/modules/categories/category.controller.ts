@@ -34,9 +34,6 @@ const getAllCategories = async (req: Request, res: Response, next: NextFunction)
     }
 }
 
-/**
- * Get category by ID
- */
 const getCategoryById = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { categoryId } = req.params;
@@ -52,9 +49,6 @@ const getCategoryById = async (req: Request, res: Response, next: NextFunction) 
   }
 };
 
-/**
- * Update category (Admin only)
- */
 const updateCategory = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const user = req.user;
