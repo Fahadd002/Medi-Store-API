@@ -6,6 +6,7 @@ import { prisma } from "./lib/prisma";
 import { categoryRouter } from "./modules/categories/category.router";
 import { medicineRouter } from "./modules/medicines/medicne.router";
 import { orderRouter } from "./modules/orders/order.router";
+import { userRouter } from "./modules/users/user.router";
 
 const app: Application = express();
 app.use(cors({
@@ -17,6 +18,7 @@ app.all("/api/auth/*splat", toNodeHandler(auth));
 app.use("/categories", categoryRouter);
 app.use("/medicines", medicineRouter);
 app.use("/orders", orderRouter);
+app.use("/users", userRouter);
 
 app.post("/api/verify-email", async (req, res) => {
     try {

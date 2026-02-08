@@ -53,7 +53,6 @@ const createOrder = async (
         throw new Error(`Medicine ${item.medicineId} not found or not available from this seller`);
       }
 
-      // Check if there's enough stock
       if (medicine.stock !== null && medicine.stock < item.quantity) {
         throw new Error(`Insufficient stock for ${medicine.name}. Available: ${medicine.stock}, Requested: ${item.quantity}`);
       }
@@ -108,7 +107,6 @@ const getMyOrders = async (customerId: string) => {
 };
 
 const getOrderById = async (orderId: string, userId: string) => {
-  // Check if user is either customer or seller of this order
   return prisma.order.findFirst({
     where: {
       id: orderId,
@@ -119,7 +117,33 @@ const getOrderById = async (orderId: string, userId: string) => {
     },
     include: {
       items: {
-        include: { medicine: true },
+        include: { 
+          medicine: {
+            include: {
+              reviews: {
+                include: {
+                  customer: {
+                    select: {
+                      id: true,
+                      name: true,
+                      email: true,
+                    }
+                  },
+                  seller: {
+                    select: {
+                      id: true,
+                      name: true,
+                      email: true,
+                    }
+                  }
+                },
+                orderBy: {
+                  createdAt: 'desc'
+                }
+              }
+            }
+          } 
+        },
       },
       customer: {
         select: {

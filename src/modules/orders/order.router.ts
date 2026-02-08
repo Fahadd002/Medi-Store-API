@@ -9,7 +9,7 @@ router.get("/my-orders", auth(UserRole.CUSTOMER, UserRole.ADMIN, UserRole.SELLER
 router.get("/:orderId", auth(UserRole.CUSTOMER, UserRole.ADMIN, UserRole.SELLER), OrderController.getOrderById);
 router.patch("/:orderId/cancel", auth(UserRole.CUSTOMER, UserRole.ADMIN, UserRole.SELLER), OrderController.cancelOrder);
 
-router.get("/seller/orders",auth(UserRole.CUSTOMER, UserRole.ADMIN, UserRole.SELLER),OrderController.getSellerOrders);
+router.get("/seller/orders",auth(UserRole.ADMIN, UserRole.SELLER),OrderController.getSellerOrders);
 router.patch("/seller/orders/:orderId/status", auth(UserRole.CUSTOMER, UserRole.ADMIN, UserRole.SELLER), OrderController.updateOrderStatus);
 
 export const orderRouter: Router = router;
