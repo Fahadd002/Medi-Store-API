@@ -25,6 +25,11 @@ const createReview = async (payload: {
       medicineId: payload.medicineId,
       ...(payload.comment !== undefined && { comment: payload.comment }),
     },
+    include: {
+      customer: {
+        select: { id: true, name: true },
+      },
+    },
   });
 };
 
@@ -48,6 +53,11 @@ const replyToReview = async (payload: {
       sellerId: payload.sellerId,
       parentId: payload.parentId,
       medicineId: parentReview.medicineId,
+    },
+    include: {
+      seller: {
+        select: { id: true, name: true },
+      },
     },
   });
 };
@@ -97,9 +107,119 @@ const deleteReview = async (
   });
 };
 
+const getMyReviews = async (customerId: string) => {
+  return prisma.review.findMany({
+    where: {
+      customerId,
+      parentId: null,
+    },
+    orderBy: { createdAt: "desc" },
+    include: {
+      medicine: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      replies: {
+        include: {
+          seller: {
+            select: { id: true, name: true },
+          },
+        },
+      },
+    },
+  });
+};
+
+const getReviewsToReply = async (sellerId: string) => {
+  // Get seller's medicines
+  const sellerMedicines = await prisma.medicine.findMany({
+    where: { sellerId },
+    select: { id: true },
+  });
+
+  const medicineIds = sellerMedicines.map(medicine => medicine.id);
+
+  // Get reviews for seller's medicines that have no seller reply yet
+  return prisma.review.findMany({
+    where: {
+      medicineId: { in: medicineIds },
+      parentId: null, // Top-level reviews only
+      replies: {
+        none: {
+          sellerId: sellerId, // No reply from this seller yet
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    include: {
+      customer: {
+        select: { id: true, name: true },
+      },
+      medicine: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
+};
+
+const getReviewStats = async (medicineId: string) => {
+  const reviews = await prisma.review.findMany({
+    where: {
+      medicineId,
+      parentId: null, // Only count top-level reviews
+      rating: { not: null }, // Only count reviews with ratings
+    },
+    select: {
+      rating: true,
+    },
+  });
+
+  const totalReviews = reviews.length;
+  
+  if (totalReviews === 0) {
+    return {
+      averageRating: 0,
+      totalReviews: 0,
+      ratingDistribution: {
+        1: 0,
+        2: 0,
+        3: 0,
+        4: 0,
+        5: 0,
+      },
+    };
+  }
+
+  const totalRating = reviews.reduce((sum, review) => sum + (review.rating || 0), 0);
+  const averageRating = totalRating / totalReviews;
+
+  // Calculate rating distribution
+  const ratingDistribution = {
+    1: reviews.filter(r => r.rating === 1).length,
+    2: reviews.filter(r => r.rating === 2).length,
+    3: reviews.filter(r => r.rating === 3).length,
+    4: reviews.filter(r => r.rating === 4).length,
+    5: reviews.filter(r => r.rating === 5).length,
+  };
+
+  return {
+    averageRating: parseFloat(averageRating.toFixed(1)),
+    totalReviews,
+    ratingDistribution,
+  };
+};
+
 export const reviewService = {
   createReview,
   replyToReview,
   getReviewsByMedicine,
   deleteReview,
+  getMyReviews,         
+  getReviewsToReply,     
+  getReviewStats,        
 };
