@@ -13,9 +13,6 @@ const createOrder = async (
     }[];
   }
 ) => {
-  console.log("Creating order with payload:", payload);
-  console.log("Customer ID:", customerId);
-  console.log("Seller ID from payload:", payload.sellerId);
   
   const totalAmount = payload.items.reduce(
     (sum, item) => sum + item.price * item.quantity,

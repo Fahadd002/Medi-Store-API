@@ -7,6 +7,7 @@ model Review {
   customerId  String?
   sellerId    String?
   medicineId  String
+  orderId     String?
 
   parentId    String?
   parent      Review?  @relation("ReviewReplies", fields: [parentId], references: [id])
@@ -15,8 +16,10 @@ model Review {
   customer    User?    @relation("CustomerReviews", fields: [customerId], references: [id])
   seller      User?    @relation("SellerReplies", fields: [sellerId], references: [id])
   medicine    Medicine @relation(fields: [medicineId], references: [id])
-
+  order       Order?    @relation(fields: [orderId], references: [id]) 
   createdAt   DateTime @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([medicineId])
+  
 }

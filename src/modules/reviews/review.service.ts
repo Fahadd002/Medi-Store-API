@@ -5,6 +5,7 @@ const createReview = async (payload: {
   comment?: string;
   customerId: string;
   medicineId: string;
+  orderId?: string;
 }) => {
   const exists = await prisma.review.findFirst({
     where: {
@@ -18,16 +19,47 @@ const createReview = async (payload: {
     throw new Error("You already reviewed this medicine");
   }
 
+  if (payload.orderId) {
+    const order = await prisma.order.findFirst({
+      where: {
+        id: payload.orderId,
+        customerId: payload.customerId,
+        status: 'DELIVERED',
+        items: {
+          some: {
+            medicineId: payload.medicineId,
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      throw new Error('Invalid order or medicine not found in order');
+    }
+  }
+
+  const baseData = {
+    rating: payload.rating,
+    customerId: payload.customerId,
+    medicineId: payload.medicineId,
+  };
+
   return prisma.review.create({
     data: {
-      rating: payload.rating,
-      customerId: payload.customerId,
-      medicineId: payload.medicineId,
-      ...(payload.comment !== undefined && { comment: payload.comment }),
+      ...baseData,
+      ...(payload.comment ? { comment: payload.comment } : {}),
+      ...(payload.orderId ? { orderId: payload.orderId } : {}),
     },
     include: {
       customer: {
-        select: { id: true, name: true },
+        select: { id: true, name: true, image: true },
+      },
+      replies: {
+        include: {
+          seller: {
+            select: { id: true, name: true, image: true },
+          },
+        },
       },
     },
   });
@@ -56,7 +88,7 @@ const replyToReview = async (payload: {
     },
     include: {
       seller: {
-        select: { id: true, name: true },
+        select: { id: true, name: true, image: true },
       },
     },
   });
@@ -71,13 +103,13 @@ const getReviewsByMedicine = async (medicineId: string) => {
     orderBy: { createdAt: "desc" },
     include: {
       customer: {
-        select: { id: true, name: true },
+        select: { id: true, name: true, image: true },
       },
       replies: {
         orderBy: { createdAt: "asc" },
         include: {
           seller: {
-            select: { id: true, name: true },
+            select: { id: true, name: true, image: true },
           },
         },
       },
@@ -124,7 +156,7 @@ const getMyReviews = async (customerId: string) => {
       replies: {
         include: {
           seller: {
-            select: { id: true, name: true },
+            select: { id: true, name: true, image: true },
           },
         },
       },
@@ -133,29 +165,26 @@ const getMyReviews = async (customerId: string) => {
 };
 
 const getReviewsToReply = async (sellerId: string) => {
-  // Get seller's medicines
   const sellerMedicines = await prisma.medicine.findMany({
     where: { sellerId },
     select: { id: true },
   });
 
   const medicineIds = sellerMedicines.map(medicine => medicine.id);
-
-  // Get reviews for seller's medicines that have no seller reply yet
   return prisma.review.findMany({
     where: {
       medicineId: { in: medicineIds },
-      parentId: null, // Top-level reviews only
+      parentId: null,
       replies: {
         none: {
-          sellerId: sellerId, // No reply from this seller yet
+          sellerId: sellerId, 
         },
       },
     },
     orderBy: { createdAt: "desc" },
     include: {
       customer: {
-        select: { id: true, name: true },
+        select: { id: true, name: true, image: true },
       },
       medicine: {
         select: {
@@ -171,8 +200,8 @@ const getReviewStats = async (medicineId: string) => {
   const reviews = await prisma.review.findMany({
     where: {
       medicineId,
-      parentId: null, // Only count top-level reviews
-      rating: { not: null }, // Only count reviews with ratings
+      parentId: null,
+      rating: { not: null },
     },
     select: {
       rating: true,
@@ -214,6 +243,54 @@ const getReviewStats = async (medicineId: string) => {
   };
 };
 
+const checkReviewEligibility = async (payload: {
+  orderId: string;
+  medicineId: string;
+  customerId: string;
+}) => {
+  const order = await prisma.order.findFirst({
+    where: {
+      id: payload.orderId,
+      customerId: payload.customerId,
+      status: 'DELIVERED', 
+    },
+    include: {
+      items: {
+        where: {
+          medicineId: payload.medicineId,
+        },
+      },
+    },
+  });
+
+  if (!order) {
+    throw new Error('Order not found or not eligible for review');
+  }
+
+  if (order.items.length === 0) {
+    throw new Error('Medicine not found in this order');
+  }
+
+  const existingReview = await prisma.review.findFirst({
+    where: {
+      customerId: payload.customerId,
+      medicineId: payload.medicineId,
+      parentId: null,
+    },
+  });
+
+  return {
+    eligible: !existingReview,
+    alreadyReviewed: !!existingReview,
+    existingReview: existingReview ? {
+      id: existingReview.id,
+      rating: existingReview.rating,
+      comment: existingReview.comment,
+      createdAt: existingReview.createdAt,
+    } : null,
+  };
+};
+
 export const reviewService = {
   createReview,
   replyToReview,
@@ -221,5 +298,6 @@ export const reviewService = {
   deleteReview,
   getMyReviews,         
   getReviewsToReply,     
-  getReviewStats,        
+  getReviewStats,
+  checkReviewEligibility,
 };

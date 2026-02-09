@@ -1,3 +1,4 @@
+// backend: review.routes.ts
 import { Router } from "express";
 import { reviewController } from "./review.controller";
 import auth, { UserRole } from "../../middlewares/auth";
@@ -11,5 +12,6 @@ router.delete("/:reviewId", auth(UserRole.ADMIN, UserRole.CUSTOMER, UserRole.SEL
 router.get("/my-reviews", auth(UserRole.CUSTOMER), reviewController.getMyReviews);
 router.get("/seller/pending", auth(UserRole.SELLER), reviewController.getReviewsToReply);
 router.get("/stats/:medicineId", reviewController.getReviewStats);
+router.get("/eligibility/:orderId/:medicineId", auth(UserRole.CUSTOMER), reviewController.checkReviewEligibility); // Add this route
 
-export default router;
+export const reviewRouter: Router = router;

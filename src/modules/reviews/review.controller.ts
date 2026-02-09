@@ -9,6 +9,7 @@ const createReview = async (req: Request, res: Response) => {
       comment: req.body.comment,
       medicineId: req.body.medicineId,
       customerId: req.user?.id as string,
+      orderId: req.body.orderId, // Add orderId from request body
     });
 
     res.status(201).json({
@@ -83,7 +84,6 @@ const deleteReview = async (req: Request, res: Response) => {
   }
 };
 
-// New controller methods
 const getMyReviews = async (req: Request, res: Response) => {
   try {
     const result = await reviewService.getMyReviews(
@@ -138,12 +138,45 @@ const getReviewStats = async (req: Request, res: Response) => {
   }
 };
 
+
+const checkReviewEligibility = async (req: Request, res: Response) => {
+  try {
+    const params = req.params as { orderId: string; medicineId: string };
+    const { orderId, medicineId } = params;
+    const customerId = req.user?.id as string;
+
+    if (!orderId || !medicineId) {
+      return res.status(400).json({
+        success: false,
+        message: "Order ID and Medicine ID are required",
+      });
+    }
+
+    const result = await reviewService.checkReviewEligibility({
+      orderId,
+      medicineId,
+      customerId,
+    });
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error.message || "Failed to check review eligibility",
+    });
+  }
+};
+
 export const reviewController = {
   createReview,
   replyToReview,
   getReviewsByMedicine,
   deleteReview,
-  getMyReviews,        
-  getReviewsToReply,   
-  getReviewStats, 
+  getMyReviews,
+  getReviewsToReply,
+  getReviewStats,
+  checkReviewEligibility, 
 };
