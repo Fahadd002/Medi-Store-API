@@ -156,29 +156,73 @@ const getMyAddedMedicines = async ({
 
 
 const getMedicineById = async (medicineId: string) => {
-  return await prisma.medicine.findUniqueOrThrow({
-    where: { id: medicineId },
-    include: {
-      category: true,
-      seller: {
-        select: { id: true, name: true },
-      },
-      reviews: {
-        include: {
-          customer: {
-            select: { id: true, name: true },
+  try {
+    const medicine = await prisma.medicine.findUniqueOrThrow({
+      where: { id: medicineId },
+      include: {
+        category: true,
+        seller: {
+          select: { 
+            id: true, 
+            name: true,
+            email: true,
+            phone: true,
+            image: true
           },
         },
-        orderBy: { createdAt: "desc" },
+        reviews: {
+          include: {
+            customer: {
+              select: { 
+                id: true, 
+                name: true,
+                image: true
+              },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+        },
+        _count: {
+          select: { 
+            reviews: true,
+          },
+        },
       },
-      _count: {
-        select: { reviews: true },
-      },
-    },
-  });
-};
+    });
 
-/* ================= UPDATE MEDICINE ================= */
+    const averageRating = medicine.reviews.length > 0
+      ? medicine.reviews.reduce((sum, review) => sum + (review?.rating || 0), 0) / medicine.reviews.length
+      : 0;
+    const ratingDistribution = {
+      5: medicine.reviews.filter(r => r.rating === 5).length,
+      4: medicine.reviews.filter(r => r.rating === 4).length,
+      3: medicine.reviews.filter(r => r.rating === 3).length,
+      2: medicine.reviews.filter(r => r.rating === 2).length,
+      1: medicine.reviews.filter(r => r.rating === 1).length,
+    };
+
+    const topReviews = medicine.reviews
+      .filter(review => review.comment && review.comment.trim().length > 0)
+      .slice(0, 3);
+
+    return {
+      success: true,
+      data: {
+        ...medicine,
+        averageRating,
+        ratingDistribution,
+        topReviews,
+      }
+    };
+  } catch (error) {
+    console.error('Error fetching medicine details:', error);
+    return {
+      success: false,
+      error: 'Failed to fetch medicine details'
+    };
+  }
+}
+
 const updateMedicine = async (
   medicineId: string,
   data: Partial<Medicine>,
@@ -200,7 +244,6 @@ const updateMedicine = async (
   });
 };
 
-/* ================= DELETE MEDICINE ================= */
 const deleteMedicine = async (
   medicineId: string,
   sellerId: string,

@@ -81,7 +81,6 @@ const updateMedicine = async (req: Request, res: Response, next: NextFunction) =
   }
 };
 
-/* ================= GET MEDICINE BY ID ================= */
 const getMedicineById = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { medicineId } = req.params;
@@ -96,7 +95,6 @@ const getMedicineById = async (req: Request, res: Response, next: NextFunction) 
   }
 };
 
-/* ================= GET MY MEDICINES (SELLER) ================= */
 const getMyAddedMedicines = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const user = req.user;
