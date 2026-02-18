@@ -201,17 +201,12 @@ const getMedicineById = async (medicineId: string) => {
       1: medicine.reviews.filter(r => r.rating === 1).length,
     };
 
-    const topReviews = medicine.reviews
-      .filter(review => review.comment && review.comment.trim().length > 0)
-      .slice(0, 3);
-
     return {
       success: true,
       data: {
         ...medicine,
         averageRating,
         ratingDistribution,
-        topReviews,
       }
     };
   } catch (error) {

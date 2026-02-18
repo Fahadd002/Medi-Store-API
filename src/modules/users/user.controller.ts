@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { userService } from "./user.service";
-import {UserStatus } from "../../../generated/prisma/client";
+import { UserStatus } from "../../../generated/prisma/client";
 import pageinationSortingHelper from "../../helpers/paginationSortingHelper";
 import { UserRole } from "../../middlewares/auth";
 
@@ -226,20 +226,20 @@ const deleteUser = async (req: Request, res: Response, next: NextFunction) => {
 };
 
 const getDropDownSeller = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const { search } = req.query;
-        const searchString = typeof search === 'string' ? search : undefined;
-        const role = UserRole.SELLER;
+  try {
+    const { search } = req.query;
+    const searchString = typeof search === 'string' ? search : undefined;
+    const role = UserRole.SELLER;
 
-        const result = await userService.dropDownSeller({ search: searchString, role });
-        
-        res.status(200).json({
-            success: true,
-            data: result,
-        });
-    } catch (error) {
-        next(error);
-    }
+    const result = await userService.dropDownSeller({ search: searchString, role });
+
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 // ================= GET USER STATISTICS =================
@@ -266,6 +266,48 @@ const getUserStatistics = async (req: Request, res: Response, next: NextFunction
   }
 };
 
+const updateProfile = async (req: Request, res: Response) => {
+    try {
+        const { userId } = req.params;
+        const { name, phone, image, currentPassword, newPassword } = req.body;
+        const user = (req as any).user;
+        
+        if (!user) {
+            return res.status(401).json({ 
+                success: false, 
+                message: "Not authenticated" 
+            });
+        }
+
+        if (user.id !== userId) {
+            return res.status(403).json({ 
+                success: false, 
+                message: "You can only update your own profile" 
+            });
+        }
+
+        const result = await userService.updateUserProfile(
+            userId as string, 
+            {
+                name,
+                phone,
+                image,
+                currentPassword,
+                newPassword
+            }, 
+            req.headers 
+        );
+
+        return res.status(200).json(result);
+        
+    } catch (error: any) {
+        return res.status(400).json({ 
+            success: false, 
+            message: error.message || "Failed to update profile" 
+        });
+    }
+};
+
 export const userController = {
   getAllUsers,
   getMyProfile,
@@ -275,5 +317,6 @@ export const userController = {
   updateUserRole,
   deleteUser,
   getUserStatistics,
-  getDropDownSeller
+  getDropDownSeller,
+  updateProfile
 };

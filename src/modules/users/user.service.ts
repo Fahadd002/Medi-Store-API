@@ -2,6 +2,7 @@ import { prisma } from "../../lib/prisma";
 import { User, Prisma, Role, UserStatus } from "../../../generated/prisma/client";
 import { UserRole } from "../../middlewares/auth";
 import { DropDown } from "../../types/dropdown.type";
+import { auth } from "../../lib/auth";
 
 const getAllUsers = async ({
   search,
@@ -80,10 +81,10 @@ const getAllUsers = async ({
   };
 };
 
-const dropDownSeller = async ({search, role}:{ search: string | undefined, role: UserRole}): Promise<DropDown[]> => {
-   const andConditions: Prisma.UserWhereInput[] = [];
-   andConditions.push({role })
-    if (search) {
+const dropDownSeller = async ({ search, role }: { search: string | undefined, role: UserRole }): Promise<DropDown[]> => {
+  const andConditions: Prisma.UserWhereInput[] = [];
+  andConditions.push({ role })
+  if (search) {
     andConditions.push({
       OR: [
         { name: { contains: search, mode: "insensitive" } },
@@ -92,7 +93,7 @@ const dropDownSeller = async ({search, role}:{ search: string | undefined, role:
       ],
     });
   }
-    const users = await prisma.user.findMany({
+  const users = await prisma.user.findMany({
     where: { AND: andConditions },
     select: { id: true, name: true },
     orderBy: { name: "asc" }
@@ -159,7 +160,7 @@ const updateUser = async (
     const disallowedFields = Object.keys(data).filter(
       (key) => !allowedFields.includes(key)
     );
-    
+
     if (disallowedFields.length > 0) {
       throw new Error(`You cannot update: ${disallowedFields.join(", ")}`);
     }
@@ -285,6 +286,70 @@ const getUserStatistics = async (isAdmin: boolean) => {
   };
 };
 
+const updateUserProfile = async (
+  userId: string,
+  data: {
+    name?: string;
+    phone?: string;
+    image?: string;
+    currentPassword?: string;
+    newPassword?: string;
+  },
+  headers: any 
+) => {
+  if (data.newPassword) {
+    if (!data.currentPassword) {
+      throw new Error("Current password is required");
+    }
+
+    try {
+      await auth.api.changePassword({
+        body: {
+          currentPassword: data.currentPassword,
+          newPassword: data.newPassword,
+        },
+        headers: headers, 
+      });
+    } catch (error: any) {
+      throw new Error(error.message || "Failed to change password");
+    }
+  }
+
+  const updateData: any = {};
+  if (data.name) updateData.name = data.name;
+  if (data.phone) updateData.phone = data.phone;
+  if (data.image) updateData.image = data.image;
+
+  if (Object.keys(updateData).length > 0) {
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        image: true,
+        role: true,
+        status: true,
+        updatedAt: true,
+      },
+    });
+
+    return {
+      success: true,
+      message: "Profile updated successfully",
+      data: updatedUser
+    };
+  }
+
+  return {
+    success: true,
+    message: data.newPassword ? "Password changed successfully" : "No changes made",
+    data: null
+  };
+};
+
 export const userService = {
   getAllUsers,
   getMyProfile,
@@ -295,4 +360,5 @@ export const userService = {
   deleteUser,
   getUserStatistics,
   dropDownSeller,
+  updateUserProfile
 };
