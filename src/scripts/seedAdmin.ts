@@ -1,16 +1,18 @@
 import * as dotenv from 'dotenv'
 import { auth } from '../lib/auth'
-import { PrismaClient } from '@prisma/client/extension'
+import { prisma } from '../lib/prisma'
 
 dotenv.config()
 
-const prisma = new PrismaClient()
 
 async function seedAdmin() {
   try {
+    console.log('🌱 Seeding admin user...')
+    
     const adminEmail = 'admin@medistore.com'
-    const adminPassword = 'Open@1234'
+    const adminPassword = 'Admin@123'
     const adminName = 'Admin User'
+
     const existingAdmin = await prisma.user.findFirst({
       where: { role: 'ADMIN' }
     })
@@ -33,24 +35,23 @@ async function seedAdmin() {
           status: 'ACTIVE'
         }
       })
-      console.log('Existing user upgraded to admin:', admin.email)
+      console.log('✅ Existing user upgraded to admin:', admin.email)
       return
     }
+
     const createdUser = await auth.api.signUpEmail({
       body: {
         name: adminName,
         email: adminEmail,
         password: adminPassword,
-        role: 'ADMIN', 
-        phone: '0123456789', 
-        status: 'ACTIVE' 
+        role: 'ADMIN',
+        phone: '',
+        status: 'ACTIVE'
       },
       headers: new Headers({
         'Content-Type': 'application/json',
       }),
     })
-
-    // Ensure email is verified
     await prisma.user.update({
       where: { id: createdUser.user.id },
       data: {
@@ -59,6 +60,8 @@ async function seedAdmin() {
     })
 
     console.log('Admin created successfully')
+    console.log('Email:', adminEmail)
+    console.log('Password:', adminPassword)
 
   } catch (error) {
     console.error('Error:', error)
