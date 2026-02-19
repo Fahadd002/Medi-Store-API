@@ -12,7 +12,7 @@ import { homeRouter } from "./modules/home/home.router";
 const app: Application = express();
 
 const allowedOrigins = [
-  process.env.APP_URL || "https://medi-store-client-swart.vercel.app",
+  process.env.APP_URL || "https://medi-store-client-main.vercel.app",
   process.env.PROD_APP_URL, // Production frontend URL
   "http://localhost:3000",
   "http://localhost:5000",

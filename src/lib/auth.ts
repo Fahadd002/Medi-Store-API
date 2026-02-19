@@ -27,7 +27,7 @@ export const auth = betterAuth({
       "http://localhost:3000",
       "http://localhost:5000",
       "https://medi-store-api.vercel.app",
-      "https://medi-store-client-swart.vercel.app",
+      "https://medi-store-client-main.vercel.app",
     ].filter(Boolean);
        // Check if origin matches allowed origins or Vercel pattern
     if (
