@@ -18,7 +18,8 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql", // or "mysql", "postgresql", ...etc
   }),
-   trustedOrigins: async (request) => {
+
+  trustedOrigins: async (request) => {
     const origin = request?.headers.get("origin");
 
     const allowedOrigins = [
@@ -26,10 +27,10 @@ export const auth = betterAuth({
       process.env.BETTER_AUTH_URL,
       "http://localhost:3000",
       "http://localhost:5000",
-      "https://medi-store-api.vercel.app",
+      "https://medi-store-api-main.vercel.app",
       "https://medi-store-client-main.vercel.app",
     ].filter(Boolean);
-       // Check if origin matches allowed origins or Vercel pattern
+    // Check if origin matches allowed origins or Vercel pattern
     if (
       !origin ||
       allowedOrigins.includes(origin) ||
@@ -42,7 +43,7 @@ export const auth = betterAuth({
   },
   basePath: "/api/auth",
   secret: process.env.BETTER_AUTH_SECRET,
-  
+
   user: {
     additionalFields: {
       role: {
@@ -68,13 +69,13 @@ export const auth = betterAuth({
       }
     },
   },
-  
+
   emailAndPassword: {
     enabled: true,
     autoSignIn: false,
     requireEmailVerification: true
   },
-  
+
   emailVerification: {
     sendOnSignUp: true,
     autoSignInAfterVerification: true,
@@ -184,14 +185,14 @@ export const auth = betterAuth({
         });
 
         console.log(`Verification email sent to ${user.email}`);
-        
+
       } catch (error) {
         console.error("Email verification failed:", error);
         throw error;
       }
     },
   },
-  
+
   socialProviders: {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID as string,
@@ -199,7 +200,7 @@ export const auth = betterAuth({
       redirectURI: `${process.env.BETTER_AUTH_URL}/api/auth/callback/google`,
     },
   },
-    session: {
+  session: {
     cookieCache: {
       enabled: true,
       maxAge: 5 * 60, // 5 minutes

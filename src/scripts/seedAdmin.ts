@@ -13,15 +13,6 @@ async function seedAdmin() {
     const adminPassword = 'Admin@123'
     const adminName = 'Admin User'
 
-    const existingAdmin = await prisma.user.findFirst({
-      where: { role: 'ADMIN' }
-    })
-
-    if (existingAdmin) {
-      console.log('Admin already exists:', existingAdmin.email)
-      return
-    }
-
     const existingUser = await prisma.user.findUnique({
       where: { email: adminEmail }
     })
@@ -35,7 +26,7 @@ async function seedAdmin() {
           status: 'ACTIVE'
         }
       })
-      console.log('✅ Existing user upgraded to admin:', admin.email)
+      console.log('Existing user upgraded to admin:', admin.email)
       return
     }
 
@@ -58,10 +49,6 @@ async function seedAdmin() {
         emailVerified: true
       }
     })
-
-    console.log('Admin created successfully')
-    console.log('Email:', adminEmail)
-    console.log('Password:', adminPassword)
 
   } catch (error) {
     console.error('Error:', error)

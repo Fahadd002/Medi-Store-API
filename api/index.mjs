@@ -119,7 +119,7 @@ var auth = betterAuth({
       process.env.BETTER_AUTH_URL,
       "http://localhost:3000",
       "http://localhost:5000",
-      "https://medi-store-api.vercel.app",
+      "https://medi-store-api-main.vercel.app",
       "https://medi-store-client-main.vercel.app"
     ].filter(Boolean);
     if (!origin || allowedOrigins2.includes(origin) || /^https:\/\/.*\.vercel\.app$/.test(origin)) {
