@@ -8,6 +8,7 @@ import { orderRouter } from "./modules/orders/order.router";
 import { userRouter } from "./modules/users/user.router";
 import { reviewRouter } from "./modules/reviews/review.router";
 import { homeRouter } from "./modules/home/home.router";
+import { prisma } from "./lib/prisma";
 
 const app: Application = express();
 
@@ -57,6 +58,28 @@ app.use("/home", homeRouter);
 
 app.get("/", (req, res) => {
   res.send("MediStore API is running successfully");
+});
+
+app.post("/api/verify-email", async (req, res) => {
+    try {
+        const token = req.body.token;
+        if (!token) return res.status(400).json({ error: "No token" });
+
+        // Get email from JWT
+        const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+        const email = payload.email;
+
+        // Update user
+        await prisma.user.update({
+            where: { email },
+            data: { emailVerified: true }
+        });
+
+        res.json({ success: true, message: "Email verified" });
+
+    } catch (error) {
+        res.status(500).json({ error: "Verification failed" });
+    }
 });
 
 // For Vercel serverless
