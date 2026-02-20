@@ -619,9 +619,13 @@ var getAllMedicines = async ({
   limit,
   skip,
   sortBy,
-  sortOrder
+  sortOrder,
+  isActive
 }) => {
   const andConditions = [];
+  if (isActive === true) {
+    andConditions.push({ isActive: true });
+  }
   if (search) {
     andConditions.push({
       OR: [
@@ -836,10 +840,11 @@ var addMedicine2 = async (req, res, next) => {
 };
 var getAllMedicines2 = async (req, res, next) => {
   try {
-    const { search, categoryId, sellerId } = req.query;
+    const { search, categoryId, sellerId, isActive } = req.query;
     const searchString = typeof search === "string" ? search : void 0;
     const category = typeof categoryId === "string" ? categoryId : void 0;
     const seller = typeof sellerId === "string" ? sellerId : void 0;
+    const isActiveValue = typeof isActive === "string" ? isActive === "true" ? true : isActive === "false" ? false : void 0 : void 0;
     const { page, limit, skip, sortBy, sortOrder } = paginationSortingHelper_default(req.query);
     const result = await medicineService.getAllMedicines({
       search: searchString,
@@ -849,7 +854,8 @@ var getAllMedicines2 = async (req, res, next) => {
       limit,
       skip,
       sortBy,
-      sortOrder
+      sortOrder,
+      isActive: isActiveValue
     });
     res.status(200).json(result);
   } catch (e) {

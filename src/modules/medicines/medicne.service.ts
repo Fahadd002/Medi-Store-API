@@ -22,6 +22,7 @@ const getAllMedicines = async ({
   skip,
   sortBy,
   sortOrder,
+  isActive,
 }: {
   search: string | undefined;
   sellerId: string | undefined;
@@ -31,8 +32,13 @@ const getAllMedicines = async ({
   skip: number;
   sortBy: string;
   sortOrder: string;
+  isActive: boolean | undefined;
 }) => {
   const andConditions: Prisma.MedicineWhereInput[] = [];
+
+  if (isActive === true) {
+    andConditions.push({ isActive: true });
+  }
 
   if (search) {
     andConditions.push({
@@ -105,7 +111,7 @@ const getMyAddedMedicines = async ({
   sortOrder: string;
 }) => {
   const andConditions: Prisma.MedicineWhereInput[] = [];
-  andConditions.push({ sellerId});
+  andConditions.push({ sellerId });
 
   if (search) {
     andConditions.push({
@@ -162,8 +168,8 @@ const getMedicineById = async (medicineId: string) => {
       include: {
         category: true,
         seller: {
-          select: { 
-            id: true, 
+          select: {
+            id: true,
             name: true,
             email: true,
             phone: true,
@@ -173,8 +179,8 @@ const getMedicineById = async (medicineId: string) => {
         reviews: {
           include: {
             customer: {
-              select: { 
-                id: true, 
+              select: {
+                id: true,
                 name: true,
                 image: true
               },
@@ -183,7 +189,7 @@ const getMedicineById = async (medicineId: string) => {
           orderBy: { createdAt: "desc" },
         },
         _count: {
-          select: { 
+          select: {
             reviews: true,
           },
         },

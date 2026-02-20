@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import pageinationSortingHelper from "../../helpers/paginationSortingHelper";
 import { UserRole } from "../../middlewares/auth";
 import { medicineService } from "./medicne.service";
+import { boolean } from "better-auth";
 
 const addMedicine = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -26,11 +27,20 @@ const addMedicine = async (req: Request, res: Response, next: NextFunction) => {
 
 const getAllMedicines = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { search, categoryId, sellerId } = req.query;
+    const { search, categoryId, sellerId, isActive } = req.query;
 
     const searchString = typeof search === "string" ? search : undefined;
     const category = typeof categoryId === "string" ? categoryId : undefined;
     const seller = typeof sellerId === "string" ? sellerId : undefined;
+    
+    // Fix: Parse isActive only if it's a string
+    const isActiveValue = typeof isActive === "string" 
+      ? isActive === "true" 
+        ? true 
+        : isActive === "false" 
+          ? false 
+          : undefined
+      : undefined;
 
     const { page, limit, skip, sortBy, sortOrder } = pageinationSortingHelper(req.query);
 
@@ -43,6 +53,7 @@ const getAllMedicines = async (req: Request, res: Response, next: NextFunction) 
       skip,
       sortBy,
       sortOrder,
+      isActive: isActiveValue
     });
 
     res.status(200).json(result);
@@ -50,7 +61,6 @@ const getAllMedicines = async (req: Request, res: Response, next: NextFunction) 
     next(e);
   }
 };
-
 /* ================= UPDATE MEDICINE ================= */
 const updateMedicine = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -102,7 +112,7 @@ const getMyAddedMedicines = async (req: Request, res: Response, next: NextFuncti
       throw new Error("Unauthorized!");
     }
 
-    const { search, categoryId} = req.query;
+    const { search, categoryId } = req.query;
 
     const searchString = typeof search === "string" ? search : undefined;
     const category = typeof categoryId === "string" ? categoryId : undefined;
@@ -119,7 +129,7 @@ const getMyAddedMedicines = async (req: Request, res: Response, next: NextFuncti
       sortBy,
       sortOrder,
     });
-    
+
     res.status(200).json(result);
   } catch (e) {
     next(e);
