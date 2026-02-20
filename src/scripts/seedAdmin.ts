@@ -7,7 +7,7 @@ dotenv.config()
 
 async function seedAdmin() {
   try {
-    console.log('🌱 Seeding admin user...')
+    console.log('Seeding admin user...')
     
     const adminEmail = 'admin@medistore.com'
     const adminPassword = 'Admin@123'

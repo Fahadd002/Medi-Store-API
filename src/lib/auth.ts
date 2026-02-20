@@ -18,7 +18,6 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql", // or "mysql", "postgresql", ...etc
   }),
-
   trustedOrigins: async (request) => {
     const origin = request?.headers.get("origin");
 
