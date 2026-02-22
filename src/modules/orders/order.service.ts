@@ -1,3 +1,4 @@
+import { Prisma } from "../../../generated/prisma/client";
 import { OrderStatus, PaymentMethod } from "../../../generated/prisma/enums";
 import { prisma } from "../../lib/prisma";
 
@@ -13,12 +14,12 @@ const createOrder = async (
     }[];
   }
 ) => {
-  
+
   const totalAmount = payload.items.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
-  
+
   const orderNumber = `ORD-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
   const result = await prisma.$transaction(async (tx) => {
@@ -36,7 +37,7 @@ const createOrder = async (
     });
 
     const orderItems = [];
-    
+
     for (const item of payload.items) {
       const medicine = await tx.medicine.findFirst({
         where: {
@@ -45,7 +46,7 @@ const createOrder = async (
           isActive: true,
         },
       });
-      
+
       if (!medicine) {
         throw new Error(`Medicine ${item.medicineId} not found or not available from this seller`);
       }
@@ -69,7 +70,7 @@ const createOrder = async (
           data: {
             stock: medicine.stock - item.quantity,
           },
-        });        
+        });
       }
 
       orderItems.push(orderItem);
@@ -114,7 +115,7 @@ const getOrderById = async (orderId: string, userId: string) => {
     },
     include: {
       items: {
-        include: { 
+        include: {
           medicine: {
             include: {
               reviews: {
@@ -139,7 +140,7 @@ const getOrderById = async (orderId: string, userId: string) => {
                 }
               }
             }
-          } 
+          }
         },
       },
       customer: {
@@ -235,8 +236,8 @@ const updateOrderStatus = async (
   status: OrderStatus
 ) => {
   const order = await prisma.order.findFirst({
-    where: { 
-      id: orderId, 
+    where: {
+      id: orderId,
       sellerId,
       status: {
         not: OrderStatus.CANCELLED, // Cannot update cancelled orders
@@ -267,6 +268,108 @@ const updateOrderStatus = async (
   });
 };
 
+const getAllOrders = async ({
+  search,
+  sellerId,
+  status,
+  page,
+  limit,
+  skip,
+  sortBy,
+  sortOrder,
+}: {
+  search: string | undefined;
+  sellerId: string | undefined;
+  status: OrderStatus | undefined;
+  page: number;
+  limit: number;
+  skip: number;
+  sortBy: string;
+  sortOrder: string;
+}) => {
+  const andConditions: Prisma.OrderWhereInput[] = [];
+
+  if (search) {
+    andConditions.push({
+      OR: [
+        { orderNumber: { contains: search, mode: "insensitive" } },
+        { customer: { name: { contains: search, mode: "insensitive" } } },
+        { customer: { email: { contains: search, mode: "insensitive" } } },
+        {
+          items: {
+            some: {
+              medicine: {
+                name: { contains: search, mode: "insensitive" }
+              }
+            }
+          }
+        }
+      ],
+    });
+  }
+
+  if (sellerId) {
+    andConditions.push({ sellerId });
+  }
+
+  if (status) {
+    andConditions.push({ status });
+  }
+
+  const [data, total] = await Promise.all([
+    prisma.order.findMany({
+      take: limit,
+      skip,
+      where: { AND: andConditions },
+      orderBy: {
+        [sortBy]: sortOrder === "asc" ? "asc" : "desc",
+      },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+          },
+        },
+        seller: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+          },
+        },
+        items: {
+          include: {
+            medicine: {
+              select: {
+                id: true,
+                name: true,
+                photoUrl: true,
+              },
+            },
+          },
+        },
+      },
+    }),
+    prisma.order.count({
+      where: { AND: andConditions },
+    }),
+  ]);
+
+  return {
+    data,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPage: Math.ceil(total / limit),
+    },
+  };
+};
+
 export const orderService = {
   createOrder,
   getMyOrders,
@@ -274,4 +377,5 @@ export const orderService = {
   cancelOrder,
   getSellerOrders,
   updateOrderStatus,
+  getAllOrders
 };

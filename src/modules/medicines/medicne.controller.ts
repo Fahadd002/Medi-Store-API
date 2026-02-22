@@ -2,7 +2,6 @@ import { NextFunction, Request, Response } from "express";
 import pageinationSortingHelper from "../../helpers/paginationSortingHelper";
 import { UserRole } from "../../middlewares/auth";
 import { medicineService } from "./medicne.service";
-import { boolean } from "better-auth";
 
 const addMedicine = async (req: Request, res: Response, next: NextFunction) => {
   try {

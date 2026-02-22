@@ -623,8 +623,8 @@ var getAllMedicines = async ({
   isActive
 }) => {
   const andConditions = [];
-  if (isActive === true) {
-    andConditions.push({ isActive: true });
+  if (isActive !== void 0) {
+    andConditions.push({ isActive });
   }
   if (search) {
     andConditions.push({
@@ -709,7 +709,13 @@ var getMyAddedMedicines = async ({
           select: { id: true, name: true }
         },
         _count: {
-          select: { reviews: true }
+          select: {
+            reviews: {
+              where: {
+                parentId: null
+              }
+            }
+          }
         }
       }
     }),
@@ -743,6 +749,9 @@ var getMedicineById = async (medicineId) => {
           }
         },
         reviews: {
+          where: {
+            parentId: null
+          },
           include: {
             customer: {
               select: {
@@ -750,13 +759,27 @@ var getMedicineById = async (medicineId) => {
                 name: true,
                 image: true
               }
+            },
+            replies: {
+              include: {
+                seller: {
+                  select: {
+                    id: true,
+                    name: true,
+                    image: true
+                  }
+                }
+              },
+              orderBy: { createdAt: "asc" }
             }
           },
           orderBy: { createdAt: "desc" }
         },
         _count: {
           select: {
-            reviews: true
+            reviews: {
+              where: { parentId: null }
+            }
           }
         }
       }
@@ -774,7 +797,9 @@ var getMedicineById = async (medicineId) => {
       data: {
         ...medicine,
         averageRating,
-        ratingDistribution
+        ratingDistribution,
+        totalReviews: medicine._count.reviews
+        // This now only counts parent reviews
       }
     };
   } catch (error) {
@@ -1181,13 +1206,101 @@ var updateOrderStatus = async (orderId, sellerId, status) => {
     data: { status }
   });
 };
+var getAllOrders = async ({
+  search,
+  sellerId,
+  status,
+  page,
+  limit,
+  skip,
+  sortBy,
+  sortOrder
+}) => {
+  const andConditions = [];
+  if (search) {
+    andConditions.push({
+      OR: [
+        { orderNumber: { contains: search, mode: "insensitive" } },
+        { customer: { name: { contains: search, mode: "insensitive" } } },
+        { customer: { email: { contains: search, mode: "insensitive" } } },
+        {
+          items: {
+            some: {
+              medicine: {
+                name: { contains: search, mode: "insensitive" }
+              }
+            }
+          }
+        }
+      ]
+    });
+  }
+  if (sellerId) {
+    andConditions.push({ sellerId });
+  }
+  if (status) {
+    andConditions.push({ status });
+  }
+  const [data, total] = await Promise.all([
+    prisma.order.findMany({
+      take: limit,
+      skip,
+      where: { AND: andConditions },
+      orderBy: {
+        [sortBy]: sortOrder === "asc" ? "asc" : "desc"
+      },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true
+          }
+        },
+        seller: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true
+          }
+        },
+        items: {
+          include: {
+            medicine: {
+              select: {
+                id: true,
+                name: true,
+                photoUrl: true
+              }
+            }
+          }
+        }
+      }
+    }),
+    prisma.order.count({
+      where: { AND: andConditions }
+    })
+  ]);
+  return {
+    data,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPage: Math.ceil(total / limit)
+    }
+  };
+};
 var orderService = {
   createOrder,
   getMyOrders,
   getOrderById,
   cancelOrder,
   getSellerOrders,
-  updateOrderStatus
+  updateOrderStatus,
+  getAllOrders
 };
 
 // src/modules/orders/order.controller.ts
@@ -1197,6 +1310,28 @@ var createOrder2 = async (req, res, next) => {
     if (!user) throw new Error("Unauthorized");
     const result = await orderService.createOrder(user.id, req.body);
     res.status(201).json(result);
+  } catch (e) {
+    next(e);
+  }
+};
+var getAllOrders2 = async (req, res, next) => {
+  try {
+    const { sellerId, status, search } = req.query;
+    const searchString = typeof search === "string" ? search : void 0;
+    const seller = typeof sellerId === "string" ? sellerId : void 0;
+    const statusValue = typeof status === "string" ? status : void 0;
+    const { page, limit, skip, sortBy, sortOrder } = paginationSortingHelper_default(req.query);
+    const result = await orderService.getAllOrders({
+      sellerId: seller,
+      status: statusValue,
+      search: searchString,
+      page,
+      limit,
+      skip,
+      sortBy,
+      sortOrder
+    });
+    res.status(200).json(result);
   } catch (e) {
     next(e);
   }
@@ -1265,7 +1400,8 @@ var OrderController = {
   getOrderById: getOrderById2,
   cancelOrder: cancelOrder2,
   getSellerOrders: getSellerOrders2,
-  updateOrderStatus: updateOrderStatus2
+  updateOrderStatus: updateOrderStatus2,
+  getAllOrders: getAllOrders2
 };
 
 // src/modules/orders/order.router.ts
@@ -1274,6 +1410,7 @@ router3.post("/", auth_default("CUSTOMER" /* CUSTOMER */, "ADMIN" /* ADMIN */, "
 router3.get("/my-orders", auth_default("CUSTOMER" /* CUSTOMER */, "ADMIN" /* ADMIN */, "SELLER" /* SELLER */), OrderController.getMyOrders);
 router3.get("/:orderId", auth_default("CUSTOMER" /* CUSTOMER */, "ADMIN" /* ADMIN */, "SELLER" /* SELLER */), OrderController.getOrderById);
 router3.patch("/:orderId/cancel", auth_default("CUSTOMER" /* CUSTOMER */, "ADMIN" /* ADMIN */, "SELLER" /* SELLER */), OrderController.cancelOrder);
+router3.get("/admin/all", auth_default("ADMIN" /* ADMIN */), OrderController.getAllOrders);
 router3.get("/seller/orders", auth_default("ADMIN" /* ADMIN */, "SELLER" /* SELLER */), OrderController.getSellerOrders);
 router3.patch("/seller/orders/:orderId/status", auth_default("CUSTOMER" /* CUSTOMER */, "ADMIN" /* ADMIN */, "SELLER" /* SELLER */), OrderController.updateOrderStatus);
 var orderRouter = router3;

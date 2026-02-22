@@ -8,7 +8,7 @@ router.post("/", auth(UserRole.CUSTOMER, UserRole.ADMIN, UserRole.SELLER), Order
 router.get("/my-orders", auth(UserRole.CUSTOMER, UserRole.ADMIN, UserRole.SELLER), OrderController.getMyOrders);
 router.get("/:orderId", auth(UserRole.CUSTOMER, UserRole.ADMIN, UserRole.SELLER), OrderController.getOrderById);
 router.patch("/:orderId/cancel", auth(UserRole.CUSTOMER, UserRole.ADMIN, UserRole.SELLER), OrderController.cancelOrder);
-
+router.get("/admin/all", auth(UserRole.ADMIN), OrderController.getAllOrders);
 router.get("/seller/orders",auth(UserRole.ADMIN, UserRole.SELLER),OrderController.getSellerOrders);
 router.patch("/seller/orders/:orderId/status", auth(UserRole.CUSTOMER, UserRole.ADMIN, UserRole.SELLER), OrderController.updateOrderStatus);
 

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { orderService } from "./order.service";
 import { OrderStatus } from "../../../generated/prisma/enums";
+import pageinationSortingHelper from "../../helpers/paginationSortingHelper";
 
 const createOrder = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -9,6 +10,31 @@ const createOrder = async (req: Request, res: Response, next: NextFunction) => {
 
     const result = await orderService.createOrder(user.id, req.body);
     res.status(201).json(result);
+  } catch (e) {
+    next(e);
+  }
+};
+
+const getAllOrders = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { sellerId, status, search } = req.query;
+    const searchString = typeof search === "string" ? search : undefined;
+    const seller = typeof sellerId === "string" ? sellerId : undefined;
+    const statusValue = typeof status === "string" ? status as OrderStatus : undefined;
+
+    const { page, limit, skip, sortBy, sortOrder } = pageinationSortingHelper(req.query);
+    const result = await orderService.getAllOrders({
+      sellerId: seller,
+      status: statusValue,
+      search: searchString,
+      page,
+      limit,
+      skip,
+      sortBy,
+      sortOrder
+    });
+
+    res.status(200).json(result);
   } catch (e) {
     next(e);
   }
@@ -99,4 +125,5 @@ export const OrderController = {
   cancelOrder,
   getSellerOrders,
   updateOrderStatus,
+  getAllOrders
 };

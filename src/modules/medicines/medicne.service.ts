@@ -36,8 +36,8 @@ const getAllMedicines = async ({
 }) => {
   const andConditions: Prisma.MedicineWhereInput[] = [];
 
-  if (isActive === true) {
-    andConditions.push({ isActive: true });
+  if (isActive !== undefined) {
+    andConditions.push({ isActive });
   }
 
   if (search) {
@@ -140,8 +140,14 @@ const getMyAddedMedicines = async ({
           select: { id: true, name: true },
         },
         _count: {
-          select: { reviews: true },
-        },
+          select: {
+            reviews: {
+              where: {
+                parentId: null
+              }
+            }
+          }
+        }
       },
     }),
     prisma.medicine.count({
@@ -177,6 +183,9 @@ const getMedicineById = async (medicineId: string) => {
           },
         },
         reviews: {
+          where: {
+            parentId: null
+          },
           include: {
             customer: {
               select: {
@@ -185,12 +194,26 @@ const getMedicineById = async (medicineId: string) => {
                 image: true
               },
             },
+            replies: {
+              include: {
+                seller: {
+                  select: {
+                    id: true,
+                    name: true,
+                    image: true
+                  }
+                }
+              },
+              orderBy: { createdAt: "asc" }
+            }
           },
           orderBy: { createdAt: "desc" },
         },
         _count: {
           select: {
-            reviews: true,
+            reviews: {
+              where: { parentId: null }
+            },
           },
         },
       },
@@ -199,6 +222,7 @@ const getMedicineById = async (medicineId: string) => {
     const averageRating = medicine.reviews.length > 0
       ? medicine.reviews.reduce((sum, review) => sum + (review?.rating || 0), 0) / medicine.reviews.length
       : 0;
+
     const ratingDistribution = {
       5: medicine.reviews.filter(r => r.rating === 5).length,
       4: medicine.reviews.filter(r => r.rating === 4).length,
@@ -213,6 +237,7 @@ const getMedicineById = async (medicineId: string) => {
         ...medicine,
         averageRating,
         ratingDistribution,
+        totalReviews: medicine._count.reviews // This now only counts parent reviews
       }
     };
   } catch (error) {
