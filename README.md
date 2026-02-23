@@ -4,15 +4,15 @@ MediStore is a full-stack e-commerce platform for purchasing over-the-counter (O
 
 🚀 Live Links
 Frontend: https://medi-store-client-main.vercel.app
+
 Backend API: https://medi-store-api-main.vercel.app
+
 Frontend Repo: https://github.com/Fahadd002/medi-store-client.git
+
 Backend Repo: https://github.com/Fahadd002/Medi-Store-API.git
+
 Demo Video: https://drive.google.com/file/d/1UtjbV3TaAOiP40xzJZ5-_8RcMxv41CK0/view?usp=sharing
 
-👑 Admin Credentials
-text
-Email:    admin@medistore.com
-Password: Admin@123
 🛠️ Tech Stack
 Frontend: Next.js 14, TypeScript, Tailwind CSS
 Backend: Node.js + Express, PostgreSQL, Prisma
